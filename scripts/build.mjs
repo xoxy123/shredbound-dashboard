@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import {mkdir,copyFile,readFile,cp,rm} from 'node:fs/promises';
+import path from 'node:path';
+await mkdir('dist/server',{recursive:true});
+await build({entryPoints:['src/client.js'],bundle:false,write:false,platform:'browser',target:'es2022'});
+await build({entryPoints:['src/server.js'],bundle:true,format:'esm',platform:'browser',target:'es2022',outfile:'dist/server/index.js',loader:{'.html':'text','.css':'text','.svg':'text'},minify:true,plugins:[{name:'raw-js',setup(b){b.onResolve({filter:/\?text$/},a=>({path:path.resolve(a.resolveDir,a.path.slice(0,-5)),namespace:'raw'}));b.onLoad({filter:/.*/,namespace:'raw'},async a=>({contents:await readFile(a.path,'utf8'),loader:'text'}));}}]});
+await mkdir('dist/migrations',{recursive:true});
+await copyFile('migrations/0001_dashboard.sql','dist/migrations/0001_dashboard.sql');
+await rm('dist/.openai',{recursive:true,force:true});
+await mkdir('dist/.openai',{recursive:true});
+await copyFile('.openai/hosting.json','dist/.openai/hosting.json');
+await cp('drizzle','dist/.openai/drizzle',{recursive:true});
+console.log('Built Shredbound Worker and migrations.');

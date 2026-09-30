@@ -1,0 +1,1 @@
+{"name":"shredbound-dashboard","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"npm run build && wrangler dev dist/server/index.js --port 4318 --ip 127.0.0.1","build":"node scripts/build.mjs","test":"node --experimental-sqlite --test tests/*.test.mjs"},"devDependencies":{"esbuild":"^0.25.0","wrangler":"^4.0.0"}}
