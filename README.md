@@ -43,3 +43,5 @@ No original Studywarts records, passwords, project videos, or protected game ass
 `https://xoxy123.github.io/shredbound-dashboard/` serves the dashboard without authentication. On pushes to `main`, the Pages workflow builds and publishes only `dist/pages`. Worker code is published separately to the existing Sites project for shared storage and media uploads. The browser uses no API tokens, passwords, cookies, or private Sites authorization.
 
 The dashboard and saved feedback/metrics are public. All visitors can add/edit records. Do not put credentials, private customer details, or other confidential data in it. Order reports should contain aggregate counts and totals only.
+
+For Worker deployments, package with the Sites workflow or `node scripts/package-sites.mjs`. The archive must retain `dist/.openai/hosting.json` and `dist/.openai/drizzle/`; placing migrations at root `.openai/drizzle/` skips production schema creation. GitHub Pages deploys only `dist/pages/`.
