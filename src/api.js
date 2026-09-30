@@ -1,4 +1,5 @@
 import {validate,kinds} from './model.js';
+import {allowedOrigin} from './access.js';
 const json=(value,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
 const maxMedia=50*1024*1024;
 const mediaTypes=['video/mp4','video/webm','video/quicktime','image/jpeg','image/png','image/webp','image/gif'];
@@ -9,7 +10,7 @@ export async function api(request,env){
  if(!env.DB||!env.UPLOADS)return json({error:'Lagringen är inte ansluten ännu. Dina uppgifter har inte sparats.'},503);
  if(!['GET','HEAD'].includes(request.method)){
   const origin=request.headers.get('Origin');
-  if((origin&&origin!==url.origin)||request.headers.get('Sec-Fetch-Site')==='cross-site')return json({error:'Otillåtet ursprung.'},403);
+  if((origin&&origin!==url.origin&&!allowedOrigin(origin))||(request.headers.get('Sec-Fetch-Site')==='cross-site'&&!allowedOrigin(origin)))return json({error:'Otillåtet ursprung.'},403);
  }
  try{
   if(path==='/api/records'&&request.method==='GET'){

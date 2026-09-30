@@ -1,5 +1,5 @@
 import {build} from 'esbuild';
-import {mkdir,copyFile,readFile,cp,rm} from 'node:fs/promises';
+import {mkdir,copyFile,readFile,writeFile,cp,rm} from 'node:fs/promises';
 import path from 'node:path';
 await mkdir('dist/server',{recursive:true});
 await build({entryPoints:['src/client.js'],bundle:false,write:false,platform:'browser',target:'es2022'});
@@ -11,3 +11,11 @@ await mkdir('dist/.openai',{recursive:true});
 await copyFile('.openai/hosting.json','dist/.openai/hosting.json');
 await cp('drizzle','dist/.openai/drizzle',{recursive:true});
 console.log('Built Shredbound Worker and migrations.');
+
+// GitHub Pages contains only browser assets; no source metadata, credentials, or data.
+await rm('dist/pages',{recursive:true,force:true});
+await mkdir('dist/pages',{recursive:true});
+for(const name of ['index.html','style.css','client.js','model.js','favicon.svg'])await copyFile('src/'+name,'dist/pages/'+name);
+await writeFile('dist/pages/config.js',"export const apiBase = 'https://shredbound-dashboard.gabriel-erikss137086.chatgpt.site';\n");
+await writeFile('dist/pages/.nojekyll','');
+console.log('Built GitHub Pages assets.');
