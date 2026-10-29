@@ -48,7 +48,7 @@ function bindFilters(){const input=$('#search');input?.addEventListener('input',
 window.addEventListener('hashchange',()=>{if(location.hash==='#main')return;section=location.hash.slice(1)||'feedback';search='';filter='all';category='all';render();window.scrollTo(0,0);});
 const inputField=(key,label,type='text',extra={})=>({key,label,type,...extra}),sel=(key,label,options,extra={})=>inputField(key,label,'select',{options,...extra}),area=(key,label,placeholder='')=>inputField(key,label,'textarea',{wide:true,placeholder});
 const statusOpts=values=>values.map(v=>[v,labels[v]]),relations=kind=>[['','Ingen koppling'],...of(kind).map(r=>[r.id,r.data.title])];
-function fields(kind){const title=inputField('title',kind==='build'?'Version / build':'Titel','text',{required:true,wide:true,max:180}),cat=sel('category','Spelsystem',categories.map(c=>[c,c]));
+function fields(kind){const title=inputField('title',kind==='build'?'Version / build':'Titel','text',{required:true,wide:true}),cat=sel('category','Spelsystem',categories.map(c=>[c,c]));
  const common=[title,cat];
  const map={
  feedback:[area('details','Text','Skriv feedback…'),inputField('file','Bild eller video','file',{accept:'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov',wide:true})],

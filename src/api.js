@@ -20,7 +20,6 @@ export async function api(request,env){
    const {results}=await env.DB.prepare('SELECT * FROM records ORDER BY created_at').all();return new Response(JSON.stringify({app:'Shredbound Dashboard',version:1,exportedAt:new Date().toISOString(),records:results.map(row)},null,2),{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename="shredbound-dashboard.json"','Cache-Control':'no-store'}});
   }
   if(path==='/api/records'&&request.method==='POST'){
-   if(Number(request.headers.get('Content-Length'))>100000)return json({error:'Posten är för stor.'},413);
    const body=await request.json(),data=validate(body.kind,body.data),id=crypto.randomUUID(),date=new Date().toISOString();
    const relationError=await checkRelations(env,body.kind,data);if(relationError)return json({error:relationError},400);
    await env.DB.prepare('INSERT INTO records (id,kind,data,created_at,updated_at) VALUES (?,?,?,?,?)').bind(id,body.kind,JSON.stringify(data),date,date).run();
@@ -57,7 +56,7 @@ export async function api(request,env){
    return new Response(request.method==='HEAD'?null:object.body,{status:bounds?206:200,headers});
   }
   return json({error:'Sidan finns inte.'},404);
- }catch(e){console.error('Dashboard API:',e.message);if(e.message?.includes('no such table'))return json({error:'Databasen förbereds. Försök snart igen.'},503);return json({error:e instanceof SyntaxError?'Ogiltigt innehåll.':/Ange|Skriv|Välj|Ladda|kan inte|måldatum|Länken|Ogiltig/.test(e.message)?e.message:'Kunde inte spara. Försök igen; formuläret finns kvar.'},400);}
+ }catch(e){console.error('Dashboard API:',e.message);if(e.message?.includes('no such table'))return json({error:'Databasen förbereds. Försök snart igen.'},503);if(/TOOBIG|too big/i.test(e.message))return json({error:'Posten är för stor för databasen.'},413);return json({error:e instanceof SyntaxError?'Ogiltigt innehåll.':/Ange|Skriv|Välj|Ladda|kan inte|måldatum|Länken|Ogiltig/.test(e.message)?e.message:'Kunde inte spara. Försök igen; formuläret finns kvar.'},400);}
 }
 async function checkRelations(env,kind,data){
  for(const [field,target] of [['videoId','video'],['buildId','build']])if(data[field]){if(!validId(data[field]))return 'Ogiltig koppling.';const r=await env.DB.prepare('SELECT kind FROM records WHERE id=?').bind(data[field]).first();if(r?.kind!==target)return 'Den länkade posten finns inte längre.';}
