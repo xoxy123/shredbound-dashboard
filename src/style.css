@@ -20,3 +20,31 @@ h1{font:600 1rem var(--heading);letter-spacing:.12em;color:#f0d089;text-transfor
 @media(max-width:760px){.header-inner{padding:16px 20px 0}.brand>span{font-size:.95rem}.identity{gap:7px}.author input{width:7ch}nav{padding:12px 20px 0;gap:2px}main{padding:20px 16px 50px}.page-heading h1{font-size:.85rem}.page-heading .button{margin:0}.row{padding:14px 12px}.row-menu{flex-direction:column}.feedback-text{font-size:.92rem}.feedback-form{padding:14px}.feedback-media{max-height:240px}.stat-number{font-size:26px}.panel-header{padding:13px 14px}.toolbar input{max-width:100%}.feedback-form-actions .button{font-size:.65rem;padding:8px 10px}footer{padding:16px}.brand{max-width:100%}.connection{display:none}}
 
 .period-label{font:.75rem var(--mono);color:var(--muted);margin:0 0 18px}#analysis-period{width:auto;max-width:230px;font-size:.85rem}.callout{background:var(--panel);border-color:var(--accent);color:var(--muted)}
+
+/* Spelare, Försäljning, Koder: play-time chart, admin forms and the one-time code reveal. */
+.chart{display:block;width:100%;height:auto;overflow:visible}
+.chart-grid{stroke:#221a11;stroke-width:1}
+.chart-base{stroke:var(--line);stroke-width:1}
+.chart-axis{fill:var(--muted);font:10px var(--mono)}
+.chart-bar{fill:var(--accent)}
+.chart-hit{fill:transparent}
+.chart-col:hover .chart-bar{fill:#f0d089}
+.chart-col:hover .chart-hit{fill:#d9b45f0f}
+.data-table{margin-top:14px;border-top:1px solid #221a11;padding-top:10px}
+.data-table summary{cursor:pointer;font:.65rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.data-table summary:hover{color:var(--accent)}
+.data-table table{margin-top:8px}
+th.num{text-align:right}
+.mono{font:.75rem var(--mono)}
+.inline-form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:14px}
+.panel-body>.inline-form:first-child{margin-top:0}
+.inline-form .field{flex:1 1 240px}
+.code-reveal{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:16px;padding:16px;border:1px dashed var(--accent);border-radius:3px;background:#0e0b08}
+.code-reveal code{font:600 1.35rem var(--mono);letter-spacing:.12em;color:#f0d089;overflow-wrap:anywhere}
+.confirm-text{font-size:.95rem}
+@media(max-width:760px){.inline-form .button{width:100%}
+.code-reveal code{font-size:1.1rem}
+}
+@media(max-width:760px){.col-actions{display:none}
+td .actions.mobile-only{display:flex;margin-top:8px}
+}

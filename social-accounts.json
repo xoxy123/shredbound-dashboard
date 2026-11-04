@@ -1,0 +1,5 @@
+{
+  "_comment": "The Shredbound accounts the Sunday analysis (scheduled task shredbound-social-weekly-analysis) reads in William's own logged-in Chrome. Fill in the handles without @, e.g. \"tiktok\": \"shredboundgame\". While a handle is empty, that platform is skipped and the task reports 'accounts not set'. The task only reads analytics; it never posts, likes, comments, follows or changes anything on the accounts.",
+  "tiktok": "",
+  "instagram": ""
+}

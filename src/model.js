@@ -1,4 +1,7 @@
 export const categories=['Åkkänsla & carving','Hopp & pop','Rotationer & air control','Grabs & stil','Rails & boxar','Landning & krasch','Switch & butters','Kamera','First Light & banor','Karaktär & animation','Grafik & snö','Kontroller & UI','Prestanda & builds','Ljud','Övrigt'];
+export const platforms=['TikTok','Instagram'];
+// Reports saved before the platform field existed, or through a Worker that drops it, carry the platform in their title.
+export const platformOf=d=>platforms.includes(d?.platform)?d.platform:/instagram/i.test(`${d?.title||''} ${d?.dataSource||''}`)?'Instagram':'TikTok';
 export const kinds=['feedback','video','goal','build','playtest','budget','content','analysis','settings'];
 const text=(value,max=Infinity)=>typeof value==='string'?value.trim().slice(0,max):'';
 const number=(value,min=0,max=1e12)=>{const n=Number(value);if(!Number.isFinite(n)||n<min||n>max)throw new Error('Ange ett giltigt tal.');return n;};
@@ -20,7 +23,7 @@ export function validate(kind,input){
  const metric=value=>value===''||value==null?null:number(value,0,1e15);
  const periodStart=text(input.periodStart,10),periodEnd=text(input.periodEnd,10);
  if(!/^\d{4}-\d{2}-\d{2}$/.test(periodStart)||!/^\d{4}-\d{2}-\d{2}$/.test(periodEnd)||periodEnd<periodStart)throw new Error('Välj en giltig statistikperiod.');
- Object.assign(d,{periodStart,periodEnd,account:text(input.account,100),profileUrl:safeUrl(input.profileUrl),conclusion:text(input.conclusion),next:text(input.next),evidence:text(input.evidence),views:metric(input.views),likes:metric(input.likes),comments:metric(input.comments),shares:metric(input.shares),followers:metric(input.followers),newFollowers:input.newFollowers===''||input.newFollowers==null?null:number(input.newFollowers,-1e12),orders:metric(input.orders),revenue:metric(input.revenue),currency:choice(input.currency,['SEK','USD','EUR'],'SEK'),orderSource:text(input.orderSource,200),dataSource:text(input.dataSource,200),takenOn:text(input.takenOn,30)||new Date().toISOString(),analyst:text(input.analyst,80)||'Codex',topVideos:Array.isArray(input.topVideos)?input.topVideos.slice(0,30).map(v=>({title:text(v.title),url:safeUrl(v.url),views:metric(v.views),likes:metric(v.likes)})):[]});break;
+ Object.assign(d,{periodStart,periodEnd,platform:choice(input.platform,platforms,platformOf({title:d.title,dataSource:input.dataSource})),account:text(input.account,100),profileUrl:safeUrl(input.profileUrl),conclusion:text(input.conclusion),next:text(input.next),evidence:text(input.evidence),views:metric(input.views),likes:metric(input.likes),comments:metric(input.comments),shares:metric(input.shares),followers:metric(input.followers),newFollowers:input.newFollowers===''||input.newFollowers==null?null:number(input.newFollowers,-1e12),orders:metric(input.orders),revenue:metric(input.revenue),currency:choice(input.currency,['SEK','USD','EUR'],'SEK'),orderSource:text(input.orderSource,200),dataSource:text(input.dataSource,200),takenOn:text(input.takenOn,30)||new Date().toISOString(),analyst:text(input.analyst,80)||'Codex',topVideos:Array.isArray(input.topVideos)?input.topVideos.slice(0,30).map(v=>({title:text(v.title),url:safeUrl(v.url),views:metric(v.views),likes:metric(v.likes)})):[]});break;
  }
  case 'settings':Object.assign(d,{monthlyBudget:number(input.monthlyBudget??0)});break;
  }

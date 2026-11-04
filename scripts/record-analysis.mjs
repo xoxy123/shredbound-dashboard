@@ -1,9 +1,10 @@
-// Saves an assistant's verified TikTok/order report. No tokens are written to disk.
-import {validate} from '../src/model.js';
+// Saves an assistant's verified TikTok or Instagram (and order) report. No tokens are written to disk.
+import {validate,platforms} from '../src/model.js';
 let input='';for await (const part of process.stdin)input+=part;
-const report=JSON.parse(input),data=validate('analysis',{
- ...report,title:report.title||`TikTok · ${report.periodStart} – ${report.periodEnd}`,
- author:'Codex',analyst:'Codex',
+// The title starts with the platform, so the deployed Worker keeps it even where it drops the platform field.
+const report=JSON.parse(input),platform=platforms.includes(report.platform)?report.platform:'TikTok',data=validate('analysis',{
+ ...report,platform,title:`${platform} · ${report.periodStart} – ${report.periodEnd}`,
+ author:report.analyst||'Codex',analyst:report.analyst||'Codex',
 });
 const site=new URL(process.env.SHREDBOUND_SITE||'http://127.0.0.1:4318');
 if(!['https:','http:'].includes(site.protocol)||site.username||site.password)throw Error('Invalid Site URL');
