@@ -104,7 +104,12 @@ async function fetchGames(key: string): Promise<Game[]> {
       ? "itch.io godkände inte API-nyckeln."
       : "itch.io svarade inte. Försök igen senare.");
   }
-  return (body.games ?? []).map((raw) => {
+  // William, 2026-11-14: "remove studywarts as a section". The itch.io account also holds
+  // his other games; the Shredbound dashboard shows Shredbound's only.
+  return (body.games ?? []).filter((raw) => {
+    const g = raw as Record<string, unknown>;
+    return /shredbound/i.test(String(g.title ?? "") + " " + String(g.url ?? ""));
+  }).map((raw) => {
     const g = raw as Record<string, unknown>;
     const earnings = Array.isArray(g.earnings) ? g.earnings as Record<string, unknown>[] : [];
     return {
@@ -142,7 +147,7 @@ function view(cache: Cache | null, admin: boolean) {
   return {
     connected: true,
     updatedAt: cache.at,
-    games: cache.games.map((g) => ({
+    games: cache.games.filter((g) => /shredbound/i.test(g.title + " " + g.url)).map((g) => ({
       id: g.id,
       title: g.title,
       url: g.url,
