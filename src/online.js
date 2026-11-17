@@ -62,3 +62,10 @@ export function salesChart(daily,days=60,{width=960,height=220}={},today=new Dat
  const labels=rows.map((r,i)=>i%10===0||i===rows.length-1?`<text x="${pad.l+i*slot+slot/2}" y="${height-6}" text-anchor="middle" class="chart-axis">${Number(r.day.slice(8))}/${Number(r.day.slice(5,7))}</text>`:'').join('');
  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Köp per dag, ${rows.length} dagar">${ticks}${cols}<line x1="${pad.l}" x2="${width-pad.r}" y1="${pad.t+ht}" y2="${pad.t+ht}" class="chart-base"/>${labels}</svg>`;
 }
+// Sales funnel ("funnel" function): Instagram/TikTok weeks and the clippers' views.
+export function normalizeFunnel(body){const weeks=(Array.isArray(body?.weeks)?body.weeks:[]).map(w=>({platform:w.platform==='TikTok'?'TikTok':'Instagram',periodStart:String(w.periodStart||'').slice(0,10),periodEnd:String(w.periodEnd||'').slice(0,10),views:num(w.views),reach:num(w.reach),profileVisits:num(w.profileVisits),linkClicks:num(w.linkClicks),source:String(w.source||''),takenAt:w.takenAt||null})).filter(w=>/^\d{4}-\d{2}-\d{2}$/.test(w.periodStart)&&/^\d{4}-\d{2}-\d{2}$/.test(w.periodEnd));const c=body?.clippers||{};return {weeks,clippers:{count:num(c.count)??0,scanned:num(c.scanned)??0,views:num(c.views)??0,gained:num(c.gained)??0,lastScan:c.lastScan||null,list:Array.isArray(c.list)?c.list.map(x=>({username:String(x.username||''),views:num(x.views)??0,gained:num(x.gained)??0,followers:num(x.followers)??0,videos:num(x.videos)??0,scannedAt:x.scannedAt||null})):null}};}
+// Sums a platform's weeks; a metric stays null until some week has it.
+export function funnelSum(weeks,platform,key){const v=weeks.filter(w=>w.platform===platform&&w[key]!=null);return v.length?v.reduce((n,w)=>n+w[key],0):null;}
+// a/b as a percentage, null when either side is unknown or b is 0.
+export const rate=(a,b)=>a==null||b==null||!b?null:a/b*100;
+export const pct=r=>r==null?'—':(r<1?r.toLocaleString('sv-SE',{maximumFractionDigits:2}):r<10?r.toLocaleString('sv-SE',{maximumFractionDigits:1}):Math.round(r).toLocaleString('sv-SE'))+' %';

@@ -68,7 +68,7 @@ type Stats = {
     net: Money;
   };
   balance: { available: Money; pending: Money };
-  checkout: { complete: number; expired: number; open: number } | null;
+  checkout: { opened: number; complete: number; expired: number; open: number } | null;
   daily: { day: string; sales: number; gross: Money }[];
   countries: { country: string; sales: number; gross: Money }[];
   payments: Payment[];
@@ -193,7 +193,20 @@ async function fetchStats(key: string): Promise<Stats> {
     optional(() => stripe(key, "balance")),
     optional(() => stripe(key, "payouts", { limit: "20" })),
     optional(() => stripe(key, "disputes", { limit: "20" })),
-    optional(() => stripe(key, "checkout/sessions", { limit: "100" })),
+    optional(async () => {
+      // Every opening of the payment link creates a Checkout Session.
+      const all: Record<string, any>[] = [];
+      let last = "";
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const params: Record<string, string> = { limit: "100" };
+        if (last) params.starting_after = last;
+        const b = await stripe(key, "checkout/sessions", params) as { data: Record<string, any>[]; has_more: boolean };
+        all.push(...b.data);
+        if (!b.has_more || !b.data.length) break;
+        last = b.data[b.data.length - 1].id;
+      }
+      return { data: all };
+    }),
   ]) as (Record<string, any> | null)[];
 
   const totals: Stats["totals"] = {
@@ -257,7 +270,7 @@ async function fetchStats(key: string): Promise<Stats> {
 
   let checkout: Stats["checkout"] = null;
   if (sessions) {
-    checkout = { complete: 0, expired: 0, open: 0 };
+    checkout = { opened: sessions.data.length, complete: 0, expired: 0, open: 0 };
     for (const s of sessions.data as Record<string, any>[]) {
       if (s.status === "complete") checkout.complete++;
       else if (s.status === "expired") checkout.expired++;
@@ -316,7 +329,7 @@ async function stats(force = false): Promise<Stats | null> {
 function view(s: Stats | null, admin: boolean) {
   if (!s) return { connected: false };
   if (!admin) {
-    return { connected: true, updatedAt: s.at, account: { name: s.account.name, url: s.account.url }, totals: { sales: s.totals.sales } };
+    return { connected: true, updatedAt: s.at, account: { name: s.account.name, url: s.account.url }, totals: { sales: s.totals.sales }, checkout: s.checkout };
   }
   const { at, ...rest } = s;
   return { connected: true, updatedAt: at, ...rest };
