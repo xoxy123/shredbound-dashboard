@@ -25,3 +25,13 @@ test('judges: plain JSON (a browser that already unzipped it) reads too, and a s
   await assert.rejects(readRecording(Buffer.from(JSON.stringify({ format: 'other' }))));
   assert.equal(prepare({ format: 'shredbound-judge-replay', riders: [], frames: {} }).duration, 0);
 });
+
+test('judges: the module the Domare tab imports is published with the pages and served by the Worker', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  assert.ok(readdirSync(new URL('../dist/pages/', import.meta.url)).includes('judges.js'), 'GitHub Pages carries judges.js');
+  const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8');
+  for (const [, file] of client.matchAll(/from '\.\/([\w-]+\.js)'/g)) {
+    assert.ok(readdirSync(new URL('../dist/pages/', import.meta.url)).includes(file), 'every module client.js imports is published: ' + file);
+  }
+  assert.match(readFileSync(new URL('../src/server.js', import.meta.url), 'utf8'), /'\/judges\.js'/);
+});

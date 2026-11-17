@@ -6,8 +6,9 @@ import css from './style.css';
 import client from './client.js?text';
 import model from './model.js?text';
 import online from './online.js?text';
+import judges from './judges.js?text';
 import icon from './favicon.svg';
-const assets={'/':[html,'text/html'],'/index.html':[html,'text/html'],'/style.css':[css,'text/css'],'/client.js':[client,'text/javascript'],'/model.js':[model,'text/javascript'],'/online.js':[online,'text/javascript'],'/favicon.svg':[icon,'image/svg+xml'],'/config.js':[config,'text/javascript']};
+const assets={'/':[html,'text/html'],'/index.html':[html,'text/html'],'/style.css':[css,'text/css'],'/client.js':[client,'text/javascript'],'/model.js':[model,'text/javascript'],'/online.js':[online,'text/javascript'],'/judges.js':[judges,'text/javascript'],'/favicon.svg':[icon,'image/svg+xml'],'/config.js':[config,'text/javascript']};
 export default{async fetch(request,env){
  let response;const path=new URL(request.url).pathname,origin=request.headers.get('Origin'),cors=allowedOrigin(origin);
  if(path.startsWith('/api/')){if(request.method==='OPTIONS')response=new Response(null,{status:cors?204:403});else response=await api(request,env);}
