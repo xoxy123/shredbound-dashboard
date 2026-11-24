@@ -10,12 +10,16 @@
 //
 // The store page (repo xoxy123/quantative-game-garden, src/lib/traffic.ts) sends
 // text/plain JSON so the browser needs no CORS preflight:
-//   track        {kind:"view"|"buy", source, path, visitor, tier?}  -> 204
+//   track        {kind:"view"|"buy", source, path, tier?}  -> 204
 // The dashboard sends:
 //   public.stats  -> {ok, days, since, totals, sources[], daily[], tiers[]}
 // Stats are counts only (no visitor ids), so they are public like the sale count.
-// Nothing personal is stored: no IP address, no user agent, and "visitor" is a
-// random id that the page keeps in the browser's localStorage.
+// The store's privacy policy promises no cookies, nothing stored on the device and
+// no IP addresses kept, so the page sends no id at all. A unique visitor is
+// counted as sha256(today's salt, IP, user agent): the salt is random per UTC day
+// (public.site_visit_salts) and deleted after a day, so the id cannot be traced
+// back to an IP and the same person counts once per day. Neither the IP nor the
+// user agent is stored.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -32,7 +36,6 @@ const MAX_BODY_BYTES = 2048;
 const LIMIT_WINDOW_SECONDS = 600;
 const TRACK_PER_IP = 120;
 
-const VISITOR = /^[A-Za-z0-9]{16,40}$/;
 const SLUG = /^[a-z0-9_-]{1,32}$/;
 const BOT = /bot|crawl|spider|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|monitor/i;
 
@@ -108,10 +111,10 @@ Deno.serve(async (req: Request) => {
       const origin = req.headers.get("Origin") ?? "";
       if (!STORE_ORIGINS.has(origin) || BOT.test(req.headers.get("user-agent") ?? "")) return reply(req, null, 204);
       const kind = body.kind === "buy" ? "buy" : body.kind === "view" ? "view" : null;
-      const visitor = String(body.visitor ?? "");
-      if (!kind || !VISITOR.test(visitor)) return reply(req, { ok: false, error: "bad_request" }, 400);
+      if (!kind) return reply(req, { ok: false, error: "bad_request" }, 400);
 
-      const ipHash = (await sha256(clientIp(req))).slice(0, 24);
+      const ip = clientIp(req);
+      const ipHash = (await sha256(ip)).slice(0, 24);
       const { data: hits, error: hitError } = await supabase.rpc("access_hit", {
         p_bucket: "visit-ip:" + ipHash,
         p_window_seconds: LIMIT_WINDOW_SECONDS,
@@ -119,6 +122,9 @@ Deno.serve(async (req: Request) => {
       if (hitError) throw new Error(hitError.message);
       if (Number(hits ?? 0) > TRACK_PER_IP) return reply(req, null, 204);
 
+      const { data: salt, error: saltError } = await supabase.rpc("site_visit_salt");
+      if (saltError || !salt) throw new Error(saltError?.message ?? "no salt");
+      const visitor = (await sha256(`${salt}|${ip}|${req.headers.get("user-agent") ?? ""}`)).slice(0, 32);
       const tier = kind === "buy" ? String(body.tier ?? "").toLowerCase() : "";
       const { error } = await supabase.from("site_visits").insert({
         kind,

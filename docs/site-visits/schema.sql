@@ -7,8 +7,10 @@
 --
 -- Written only by the "site-visits" edge function (service role), which the store
 -- page calls on every page view and buy click. Closed to clients: RLS on, no
--- policies. No personal data: "visitor" is a random id the page keeps in that
--- browser's localStorage, and no IP address or user agent is stored.
+-- policies. Nothing is stored on the visitor's device and no IP address or user
+-- agent is kept: "visitor" is sha256(today's salt, IP, user agent), and each salt
+-- (public.site_visit_salts) is deleted after a day. Migrations "site_visits" and
+-- "site_visit_salts" (2026-11-23).
 
 create table if not exists public.site_visits (
   id bigint generated always as identity primary key,
@@ -74,3 +76,27 @@ as $$
 $$;
 
 revoke all on function public.site_visit_stats(integer) from public, anon, authenticated;
+
+-- One random salt per UTC day; anything older than yesterday is deleted on use.
+create table if not exists public.site_visit_salts (
+  day date primary key,
+  salt text not null
+);
+comment on table public.site_visit_salts is
+  'One random salt per UTC day for counting unique store visitors without keeping IP addresses: visitor = sha256(salt, ip, user agent). Salts older than yesterday are deleted, so old visitor ids cannot be traced back. Service role only.';
+alter table public.site_visit_salts enable row level security;
+revoke all on public.site_visit_salts from anon, authenticated;
+
+create or replace function public.site_visit_salt()
+returns text
+language sql
+volatile
+set search_path = public
+as $$
+  delete from public.site_visit_salts where day < (now() at time zone 'UTC')::date - 1;
+  insert into public.site_visit_salts (day, salt)
+  values ((now() at time zone 'UTC')::date, encode(extensions.gen_random_bytes(32), 'hex'))
+  on conflict (day) do nothing;
+  select salt from public.site_visit_salts where day = (now() at time zone 'UTC')::date;
+$$;
+revoke all on function public.site_visit_salt() from public, anon, authenticated;
