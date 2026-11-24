@@ -45,6 +45,8 @@ type Payment = {
   status: "paid" | "refunded" | "partial_refund" | "failed" | "blocked" | "disputed" | "pending";
   fee: number | null;
   net: number | null;
+  // The charge in the payout currency (SEK) before fees: the dashboard's goals count sales in kronor.
+  settled: number | null;
   settleCurrency: string | null;
   method: string;
   country: string;
@@ -261,6 +263,7 @@ async function fetchStats(key: string): Promise<Stats> {
       status,
       fee: bt ? bt.fee : null,
       net: bt ? bt.net : null,
+      settled: bt ? bt.amount : null,
       settleCurrency: bt ? String(bt.currency).toUpperCase() : null,
       method: String(c.payment_method_details?.card?.brand ?? c.payment_method_details?.type ?? ""),
       country,

@@ -10,6 +10,9 @@
 //   admin.saveWeek   {platform, periodStart, periodEnd, views?, reach?,
 //                    profileVisits?, linkClicks?, source?}: upsert one period
 //   admin.deleteWeek {platform, periodStart, periodEnd}
+//   public.social    Shredbound's Instagram followers now (read live, at most every
+//                    5 minutes) and one reading per day, for the Mål tab's follower
+//                    goal (public.social_readings; pg_cron also calls it daily)
 // The admin secret is checked by the "access" function, as in store-stats.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -24,6 +27,68 @@ const ORIGINS = new Set([
   "http://localhost:4318",
 ]);
 const PLATFORMS = new Set(["Instagram", "TikTok"]);
+
+// Shredbound's own Instagram. Its profile embed page carries the follower count;
+// Instagram answers it with data only to a phone browser's user agent.
+const INSTAGRAM = "shredbound.game";
+const PHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+const SOCIAL_FRESH_MS = 5 * 60_000;
+
+async function readInstagram(handle: string): Promise<{ followers: number; posts: number | null } | { error: string }> {
+  let html = "";
+  try {
+    const r = await fetch(`https://www.instagram.com/${handle}/embed/`, { headers: { "User-Agent": PHONE_UA, "Accept-Language": "en-US,en;q=0.9" }, signal: AbortSignal.timeout(15_000) });
+    html = await r.text();
+  } catch {
+    return { error: "Instagram svarade inte." };
+  }
+  const m = html.match(/"contextJSON":"((?:\\.|[^"\\])*)"/);
+  if (!m) return { error: "Instagram svarade inte med siffrorna." };
+  try {
+    const ctx = JSON.parse(JSON.parse(`"${m[1]}"`))?.context;
+    const followers = Number(ctx?.followers_count);
+    if (String(ctx?.username).toLowerCase() !== handle || !Number.isFinite(followers)) return { error: "Instagram svarade inte med siffrorna." };
+    const posts = Number(ctx?.posts_count);
+    return { followers, posts: Number.isFinite(posts) ? posts : null };
+  } catch {
+    return { error: "Instagram svarade inte med siffrorna." };
+  }
+}
+
+// The newest reading (taken now if the last one is older than 5 minutes) and the
+// last reading of every day, oldest first.
+async function social() {
+  const { data: last } = await supabase.from("social_readings").select("followers, posts, taken_at")
+    .eq("platform", "instagram").order("taken_at", { ascending: false }).limit(1).maybeSingle();
+  let error: string | null = null;
+  if (!last || Date.now() - Date.parse(last.taken_at) > SOCIAL_FRESH_MS) {
+    const now = await readInstagram(INSTAGRAM);
+    if ("error" in now) error = now.error;
+    else {
+      const { error: e } = await supabase.from("social_readings").insert({ platform: "instagram", handle: INSTAGRAM, followers: now.followers, posts: now.posts });
+      if (e) throw new Error(e.message);
+    }
+  }
+  const { data: rows, error: e2 } = await supabase.from("social_readings").select("followers, posts, taken_at")
+    .eq("platform", "instagram").gte("taken_at", new Date(Date.now() - 120 * 86_400_000).toISOString())
+    .order("taken_at", { ascending: true }).limit(5000);
+  if (e2) throw new Error(e2.message);
+  const byDay = new Map<string, { day: string; followers: number; takenAt: string }>();
+  for (const r of rows ?? []) byDay.set(String(r.taken_at).slice(0, 10), { day: String(r.taken_at).slice(0, 10), followers: Number(r.followers), takenAt: r.taken_at });
+  const latest = rows?.length ? rows[rows.length - 1] : null;
+  const first = rows?.length ? rows[0] : null;
+  return {
+    instagram: {
+      handle: INSTAGRAM,
+      followers: latest ? Number(latest.followers) : null,
+      posts: latest?.posts ?? null,
+      takenAt: latest?.taken_at ?? null,
+      first: first ? { followers: Number(first.followers), takenAt: first.taken_at } : null,
+      daily: [...byDay.values()],
+      error,
+    },
+  };
+}
 
 function cors(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
@@ -143,6 +208,7 @@ Deno.serve(async (req: Request) => {
   const action = String(body.action ?? "");
   try {
     if (action === "public.stats") return json(req, await view(false));
+    if (action === "public.social") return json(req, await social());
     if (!action.startsWith("admin.")) return json(req, { error: "Okänd åtgärd." }, 400);
     const admin = await checkAdmin(req);
     if (admin === "unavailable") return json(req, { error: "Access-funktionen svarar inte ännu." }, 503);

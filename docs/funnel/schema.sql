@@ -25,3 +25,18 @@ comment on table public.funnel_weeks is
 
 alter table public.funnel_weeks enable row level security;
 revoke all on public.funnel_weeks from anon, authenticated;
+
+-- Shredbound's own Instagram followers for the Mål tab (migration "social_readings",
+-- 2026-11-23). Written by the funnel function's public.social (live reading at most
+-- every 5 minutes) and once a day by pg_cron job "shredbound-social-daily" (17:05 UTC).
+create table if not exists public.social_readings (
+  id bigint generated always as identity primary key,
+  platform text not null check (platform in ('instagram', 'tiktok')),
+  handle text not null check (handle ~ '^[a-z0-9_.]{1,30}$'),
+  taken_at timestamptz not null default now(),
+  followers bigint check (followers >= 0),
+  posts integer check (posts >= 0)
+);
+create index if not exists social_readings_platform_at on public.social_readings (platform, taken_at);
+alter table public.social_readings enable row level security;
+revoke all on public.social_readings from anon, authenticated;

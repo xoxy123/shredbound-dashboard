@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as online from '../src/online.js';
 
-test('tabs: only Feedback, Spelare, Försäljning, Budget and Mål are shown', () => {
+test('tabs: Feedback, Spelare, Försäljning, Budget, Mål and Healthy page', () => {
   const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8');
   const tabs = client.match(/const tabs=(\[.*?\]\]);/)[1];
-  assert.deepEqual(JSON.parse(tabs.replace(/'/g, '"')).map(t => t[1]), ['Feedback', 'Spelare', 'Försäljning', 'Budget', 'Mål']);
+  assert.deepEqual(JSON.parse(tabs.replace(/'/g, '"')).map(t => t[1]), ['Feedback', 'Spelare', 'Försäljning', 'Budget', 'Mål', 'Healthy page']);
   assert.match(client, /id="admin-form"/, 'the admin key can still be unlocked without the Koder tab');
   assert.doesNotMatch(client, /href="#codes"/, 'no link points at the removed Koder tab');
 });
