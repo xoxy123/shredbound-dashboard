@@ -6,7 +6,8 @@
 // function reads it. Use a restricted, read-only key.
 //
 // Actions (POST JSON {action, ...}):
-//   public.stats     number of paid sales only, no amounts and no customer data
+//   public.stats     number of paid sales, checkout openings and sales per traffic
+//                    source; no amounts and no customer data
 //   admin.stats      everything: revenue, fees, net, refunds, balance, payouts,
 //                    disputes, checkout conversion, per-day and per-country sales,
 //                    and the payment list (x-admin-secret header)
@@ -69,6 +70,11 @@ type Stats = {
   };
   balance: { available: Money; pending: Money };
   checkout: { opened: number; complete: number; expired: number; open: number } | null;
+  // Checkout openings and paid sales per traffic source. The store page adds
+  // ?client_reference_id=<source> to its payment links (see the site-visits
+  // function); sessions without one are "okand" (older links, or a link shared
+  // without going through the page).
+  sources: { source: string; opened: number; paid: number }[];
   daily: { day: string; sales: number; gross: Money }[];
   countries: { country: string; sales: number; gross: Money }[];
   payments: Payment[];
@@ -278,6 +284,16 @@ async function fetchStats(key: string): Promise<Stats> {
     }
   }
 
+  const bySource = new Map<string, { source: string; opened: number; paid: number }>();
+  for (const s of (sessions?.data ?? []) as Record<string, any>[]) {
+    const ref = String(s.client_reference_id ?? "").toLowerCase();
+    const source = /^[a-z0-9_-]{1,32}$/.test(ref) ? ref : "okand";
+    const row = bySource.get(source) ?? { source, opened: 0, paid: 0 };
+    row.opened++;
+    if (s.payment_status === "paid") row.paid++;
+    bySource.set(source, row);
+  }
+
   return {
     at: new Date().toISOString(),
     account: {
@@ -288,6 +304,7 @@ async function fetchStats(key: string): Promise<Stats> {
     totals,
     balance: { available: money(balance?.available), pending: money(balance?.pending) },
     checkout,
+    sources: [...bySource.values()].sort((a, b) => b.opened - a.opened),
     daily: [...daily.values()].sort((a, b) => a.day.localeCompare(b.day)),
     countries: [...countries.values()].sort((a, b) => b.sales - a.sales),
     payments,
@@ -325,11 +342,11 @@ async function stats(force = false): Promise<Stats | null> {
   return fresh;
 }
 
-// The public dashboard sees only how many sales there are.
+// The public dashboard sees only counts: sales, checkout openings, per source.
 function view(s: Stats | null, admin: boolean) {
   if (!s) return { connected: false };
   if (!admin) {
-    return { connected: true, updatedAt: s.at, account: { name: s.account.name, url: s.account.url }, totals: { sales: s.totals.sales }, checkout: s.checkout };
+    return { connected: true, updatedAt: s.at, account: { name: s.account.name, url: s.account.url }, totals: { sales: s.totals.sales }, checkout: s.checkout, sources: s.sources ?? [] };
   }
   const { at, ...rest } = s;
   return { connected: true, updatedAt: at, ...rest };
