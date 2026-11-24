@@ -1,6 +1,6 @@
 # Shredbound Dashboard
 
-Public dashboard with the layout and palette of Studywarts Dashboard. Swedish UI, compact tabs: feedback, players (Spelare), store sales (Försäljning), access codes (Koder), budget, content/scripts, goals, TikTok and Instagram analysis, videos, builds/playtests, overview.
+Public dashboard with the layout and palette of Studywarts Dashboard. Swedish UI, five tabs (William, 2026-11-23): feedback, players (Spelare), store sales (Försäljning), budget and goals (Mål). The older views (Koder, Domare, content, analysis, videos, builds, overview) stay in the code without a tab. The admin key is unlocked at the bottom of Spelare and Försäljning.
 
 Feedback is text plus an optional image or video. Either may be submitted alone. Files may also be dropped or images pasted. No title, category, priority, or build fields are required. Feedback can be edited, marked fixed, archived, and restored.
 
@@ -31,7 +31,9 @@ These three tabs read Shredbound's Supabase project (`yptfcpxaihfboteltuhq`), no
 
 **Sales funnel.** The top of **Försäljning** shows views → profile visits → link clicks → Stripe checkout opened → sales, the step-to-step rates, sales per view, sales per link click, sales per opened checkout, and CPA (Budget expenses in category Marknadsföring divided by Stripe sales). It reads the `funnel` edge function (source and migration in `docs/funnel/`): Instagram numbers per period from `public.funnel_weeks`, and the clippers' TikTok views from `public.clipper_snapshots` (written by the clipper dashboard's weekly scan; clipper views are all videos on each clipper's profile). "Checkout opened" is the number of Stripe Checkout Sessions, one per opening of the payment link. Instagram weeks are entered in the tab with the admin secret, or recorded by the Sunday analysis with `supabase db query --linked` into `funnel_weeks`. The "Uppdatera" button reloads everything; with the admin secret it skips the Stripe cache.
 
-**Admin secret.** The Koder tab has an ADMIN field. The secret is kept only in that browser's localStorage and is sent only as the `x-admin-secret` header to `access` and `store-stats` (which checks it by asking `access`). "Glöm admin-nyckeln" removes it. Never write the secret into source, reports or the repo.
+**Store traffic.** Försäljning shows visitors, page views and buy-button clicks on quantativestudios.com per traffic source, next to Stripe checkouts and sales for the same source. The store page (repo `xoxy123/quantative-game-garden`, `src/lib/traffic.ts`) reports each view and buy click to the `site-visits` edge function (source and migration in `docs/site-visits/`, verify_jwt off, only the store's origin is counted) and adds the source to the Stripe payment links as `client_reference_id`; `stripe-stats` groups checkouts by it (`okand` = before tracking). No cookies and nothing stored on the visitor's device: unique visitors are a daily salted hash of IP and user agent, and the salt is deleted after a day. Tag links with `?utm_source=instagram` (bio) or `?utm_source=tiktok`; untagged in-app visits often count as direct.
+
+**Admin secret.** The admin unlock form sits at the bottom of Spelare and Försäljning (it was in the Koder tab). The secret is kept only in that browser's localStorage and is sent only as the `x-admin-secret` header to `access` and `store-stats` (which checks it by asking `access`). "Glöm admin-nyckeln" removes it. Never write the secret into source, reports or the repo.
 
 ## TikTok and order analysis
 
