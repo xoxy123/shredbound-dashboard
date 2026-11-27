@@ -131,7 +131,7 @@ async function weeks() {
 
 // Latest successful scan per clipper, plus the views gained since the first one.
 async function clippers(admin: boolean) {
-  const { data: accounts, error: e1 } = await supabase.from("clipper_accounts").select("username");
+  const { data: accounts, error: e1 } = await supabase.from("clipper_accounts").select("username, status, removed_at");
   if (e1) throw new Error(e1.message);
   const { data: snaps, error: e2 } = await supabase
     .from("clipper_snapshots")
@@ -154,8 +154,14 @@ async function clippers(admin: boolean) {
     videos: last.videos ?? 0,
     scannedAt: last.taken_at,
   })).sort((a, b) => b.views - a.views);
+  // The clipper goal counts approved clippers who are still in the programme; applicants
+  // waiting for (or turned down by) the owner are not clippers yet.
+  const approved = (accounts ?? []).filter((a: any) => a.status === "approved" && !a.removed_at).length;
+  const pending = (accounts ?? []).filter((a: any) => a.status === "pending").length;
   return {
     count: (accounts ?? []).length,
+    approved,
+    pending,
     scanned: list.length,
     views: list.reduce((n, c) => n + c.views, 0),
     gained: list.reduce((n, c) => n + c.gained, 0),

@@ -63,7 +63,7 @@ export function salesChart(daily,days=60,{width=960,height=220}={},today=new Dat
  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Köp per dag, ${rows.length} dagar">${ticks}${cols}<line x1="${pad.l}" x2="${width-pad.r}" y1="${pad.t+ht}" y2="${pad.t+ht}" class="chart-base"/>${labels}</svg>`;
 }
 // Sales funnel ("funnel" function): Instagram/TikTok weeks and the clippers' views.
-export function normalizeFunnel(body){const weeks=(Array.isArray(body?.weeks)?body.weeks:[]).map(w=>({platform:w.platform==='TikTok'?'TikTok':'Instagram',periodStart:String(w.periodStart||'').slice(0,10),periodEnd:String(w.periodEnd||'').slice(0,10),views:num(w.views),reach:num(w.reach),profileVisits:num(w.profileVisits),linkClicks:num(w.linkClicks),source:String(w.source||''),takenAt:w.takenAt||null})).filter(w=>/^\d{4}-\d{2}-\d{2}$/.test(w.periodStart)&&/^\d{4}-\d{2}-\d{2}$/.test(w.periodEnd));const c=body?.clippers||{};return {weeks,clippers:{count:num(c.count)??0,scanned:num(c.scanned)??0,views:num(c.views)??0,gained:num(c.gained)??0,lastScan:c.lastScan||null,list:Array.isArray(c.list)?c.list.map(x=>({username:String(x.username||''),views:num(x.views)??0,gained:num(x.gained)??0,followers:num(x.followers)??0,videos:num(x.videos)??0,scannedAt:x.scannedAt||null})):null}};}
+export function normalizeFunnel(body){const weeks=(Array.isArray(body?.weeks)?body.weeks:[]).map(w=>({platform:w.platform==='TikTok'?'TikTok':'Instagram',periodStart:String(w.periodStart||'').slice(0,10),periodEnd:String(w.periodEnd||'').slice(0,10),views:num(w.views),reach:num(w.reach),profileVisits:num(w.profileVisits),linkClicks:num(w.linkClicks),source:String(w.source||''),takenAt:w.takenAt||null})).filter(w=>/^\d{4}-\d{2}-\d{2}$/.test(w.periodStart)&&/^\d{4}-\d{2}-\d{2}$/.test(w.periodEnd));const c=body?.clippers||{};return {weeks,clippers:{count:num(c.count)??0,approved:num(c.approved),pending:num(c.pending),scanned:num(c.scanned)??0,views:num(c.views)??0,gained:num(c.gained)??0,lastScan:c.lastScan||null,list:Array.isArray(c.list)?c.list.map(x=>({username:String(x.username||''),views:num(x.views)??0,gained:num(x.gained)??0,followers:num(x.followers)??0,videos:num(x.videos)??0,scannedAt:x.scannedAt||null})):null}};}
 // Sums a platform's weeks; a metric stays null until some week has it.
 export function funnelSum(weeks,platform,key){const v=weeks.filter(w=>w.platform===platform&&w[key]!=null);return v.length?v.reduce((n,w)=>n+w[key],0):null;}
 // a/b as a percentage, null when either side is unknown or b is 0.
@@ -85,6 +85,8 @@ export function trafficRows(visits,stripeSources){const by=new Map(),row=s=>{if(
 export const SALES_GOAL_DAY=600;
 export const salesGoal=kind=>kind==='day'?SALES_GOAL_DAY:kind==='week'?SALES_GOAL_DAY*7:SALES_GOAL_DAY*30;
 export const FOLLOWER_GOAL={platform:'Instagram',handle:'shredbound.game',target:1200,by:'2026-12-31T23:59:59'};
+// William, 2026-11-27: "get 20 clippers". Approved clippers still in the programme.
+export const CLIPPER_GOAL={target:20,since:'2026-11-27'};
 // Each paid payment as {t (ms), kr}: the amount Stripe settled in SEK, less any refund.
 export function salesPoints(payments){return (payments||[]).filter(p=>(p.status==='paid'||p.status==='partial_refund')&&p.settled!=null&&p.settleCurrency==='SEK'&&p.created).map(p=>{const share=p.amount?Math.max(0,1-(p.refunded||0)/p.amount):1;return {t:Date.parse(p.created),kr:p.settled*share/100};}).filter(p=>Number.isFinite(p.t));}
 // The current day, week (Monday first) or month in the browser's own time.
